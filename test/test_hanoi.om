@@ -1,0 +1,26 @@
+# towers of hanoi 
+hanoi:  n   # number of disks 
+        a   # position 1  
+        b   # position 2      
+        c   # position 3
+:;
+    
+    # if we have no disks left return
+    if n == 0, ret , fi
+
+    # otherwise, solve for n-1 
+    .hanoi(n-1, a, c, b)
+
+    # move for n
+    prt a | " -> " | c
+
+    # solve for n-1 rest of stack
+    .hanoi(n-1, b, a, c)
+
+    end
+
+
+# start
+main::;.hanoi(3,"A","B","C"), end
+
+

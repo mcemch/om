@@ -1,0 +1,45 @@
+#!./om
+
+# babylonian method
+sqrt:n:
+    guess = n / 2.0
+
+    for i = 0 : i < 10
+        result = n / guess
+        guess = (result + guess) / 2
+        i = i + 1
+    fin 
+
+    ret guess
+
+    end
+
+
+
+# sieve of eratosthenes
+main::
+    n = 11829281
+    if n == 1 
+        prt  n | " is not prime", fi
+    if n == 2
+        prt  n | " is prime", fi
+    if n % 2 == 0
+        prt  n | " is not prime", fi
+
+    max = .sqrt(n)
+
+    found = 1
+    for i = 3 : i < max
+        if n % i == 0
+            found = 0
+            brk
+        fi
+        i = i + 2
+    fin 
+
+    if found == 1 
+        prt n | " is prime", fi
+    if found == 0 
+        prt n | " is not prime", fi
+
+    end

@@ -1,0 +1,24 @@
+# start
+main::
+    # test loop
+    for i = 0 : i < 2000
+        i = i + 1
+    fin
+    prt "value should equal 2000: " | i
+
+    # test brk
+    for i = 0 : i < 2000
+        if i > 999, brk, fi
+        i = i + 1
+        fin
+    prt "value should equal 1000: " | i
+
+    # test con
+    for i = 0 : i < 2000
+        i = i + 1
+        if i == 1, prt "value should equal 1:" | i, con, fi
+        if i == 1, prt "this statement should not be printed", fi
+    fin
+
+    end
+

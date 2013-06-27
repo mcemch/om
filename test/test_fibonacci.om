@@ -1,0 +1,32 @@
+main::
+    # totally broken
+    .fib(10)
+    # iterative fibonacci
+    .ifib(10)
+    end
+
+fib:n:
+    if n == 1, ret 1, fi
+    if n == 2, ret 1, fi
+    # totally broken
+    # x = .f4(n-1) + .f4(n-2)
+    prt n
+    ret n
+    end
+
+
+# iterative fibonacci
+ifib:n:
+    a = 1
+    b = 1
+    prt a, prt b
+
+    for i = 2 : i < n
+        c = a + b
+        prt c
+        a = b
+        b = c
+        i = i + 1
+    fin
+    end
+

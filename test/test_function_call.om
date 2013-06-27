@@ -1,0 +1,38 @@
+#!/usr/bin/om
+
+# start
+main::
+	# call with no parameters
+	x = .f1()
+	prt "value should equal 4: " | x
+
+	# call with parameters
+	x = .f2(1, 2)
+	prt "value should equal 3: " | x
+
+	# call a recursive function
+	x = .f3(10)
+    prt "value should equal 1: " | x
+
+	end
+
+
+# add two + two together
+f1::
+	y = 2 + 2, ret y
+	end
+
+
+# add two numbers together
+f2:x,y:
+	z = x + y, ret z
+ 	end
+
+
+# recursion test
+f3:n:
+	if n == 1, ret 1, fi
+	ret .f3(n-1)
+	end
+
+

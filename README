@@ -1,0 +1,342 @@
+The om Programming Language:
+
+    The om programming language aims to be a general purpose language
+    suitable for a variety programming tasks.  The syntax allows for
+    flexible formatting of source code which makes an om program easy
+    to share between developers.  The language does not distinguish
+    between the '\n' character, the ',' character, or the ';' character
+    which could allow a program to convert the source code each file
+    to a single line for example, upon check-in and another program to
+    format the source per the developer's preferences upon check-out.
+
+    Overall, the intention of om is to help keep programming tasks fun and
+    simple to understand. 
+
+Build and Run:
+
+    make
+    make test
+
+    cat << EOF | ./om
+    main::,prt "Hello World!,end
+    EOF
+
+Comments and Newlines:
+
+    # comments look like this
+
+    Unix '\n', MSDOS '\r\n', the ',' character, and the ';', character
+    are all equivalent in om.  The following hello world program is  
+    identical to the one above internally.
+
+    # hello_world_2
+    # all programs start at main as in C
+
+        main:
+            # this is the parameter section of an om program
+        :;
+            # this is the print statement
+            prt "Hello World"
+
+            # all methods must end with the keyword 'end'
+            end
+
+Keywords:
+
+    This is the total set of keywords available in om.
+
+        for fin brk con
+        if or else fi
+        prt ret end
+        inc def
+
+Objects:
+
+    Every om file can be thought of as an object containing a set of methods
+    and attributes.  All statements outside of a method definition must be
+    either a type declaration, attribute declaration or definition, or a 
+    method definition.
+
+        Object = Type
+
+    Currently, only method definitions are implemented.  All method definitions
+    must begin with a lower case letter.  This is also true for all attribute
+    definitions and variable names.
+
+
+Methods and Attributes:
+
+    Methods define how the object (the file) will be used in other methods
+    in other files.  An om program begins execution at the "main" method
+    and will error if it is not present.  Main currently should take no
+    arguments.
+
+    The general format is:
+
+        method_definition : parameter_list : , statement_list , end
+
+    Here is an example of an add method defined and then called from
+    main:
+
+        add:a,b:,ret a + b,end
+        main::,prt .add(2,2),end
+
+
+    This will print the value 4.  Remember that you can substitute commas for 
+    newlines as well as have as many commas or newlines as you like inside
+    of the parameter list.
+
+        # this is the same program with a bunch of comments
+        # add method
+        add:
+            a   # the first operand
+            b   # the second operand
+        :;
+            # add the values together and return
+            ret a + b
+
+            # end of method
+            end
+
+        # main method
+        main:
+            # the main method calls the add function
+            # passing the arguments 2 and 2
+            prt .add(2, 2)
+
+            #end of method
+            end
+
+
+    A method which doesn't return anything via the return statement or
+    which doesn't include a return statement will always return '0' as 
+    an integer.
+
+    Attribute definitions occur outside of the method definitions and
+    are accessed the same way as the method call. (Not implemented as
+    of version 0.2).
+
+        # attributes
+        x = 1, y = 1
+        main::, prt .x + .y, end
+
+    This prints the integer '2' to the console.
+
+Operators and Variables:
+
+    Variables may be assigned using the '=' operator.  A variable will cast
+    in the following way integer -> float -> string.  Casts do not occur in
+    the reverse direction.
+
+    x = 1       # x is an integer
+    x = 1.001   # x is now a float
+    x = "one"   # x is now a string equal to "one"
+    x = 1       # x is still a string equal to "1"
+
+    A variable must be assigned before it can be evaluated in an expression.
+
+    prt y       # this will error with symbol not found
+    y = 1       # y is now an integer equal to 1
+    prt y       # this will print '1' now
+
+    Floating point and integer constants may also be negative.
+
+    x = -1      # x is a negative 1
+    x = -1.001  # x is a negative 1.001
+
+    There is no unary operator for negation.  If you want to make an variable
+    negative multiply by -1.
+
+    x = 1       # x is 1
+    x = x * -1  # x is -1
+
+    The om arithmetic operators are consist of the operators '+', '-',
+    '*', '/', and '%' and are only valid for use on float and
+    integer types.  Integer types will cast to float if used in
+    the same expression.
+
+    x = x + 1       # addition
+    y = y - 1       # subtraction
+    z = x * y       # multiplication
+    z = x / y       # division
+
+    An exception to that rule is the modulus operator which is only valid
+    on type integer.
+
+    x = y % n       # error if n is not an integer
+
+    The following operators are valid conditional operators and always evaluate
+    to a true or false value: '==', '!=', '<', '<=', '>', '>=', '&&', '||', and
+    '!'.
+
+    x = (1 == 1)    # x is 1    does 1 equal 1?
+    x = (1 != 1)    # x is 0    does 1 not equal 1?
+    x = (1 < 2)     # x is 1    is 1 less than 2?
+    x = (1 > 2)     # x is 0    is 1 greater than 2?
+    x = (2 <= 2)    # x is 1    is 2 less than or equal to 2?
+    x = (2 >= 2)    # x is 1    is 2 greater than or equal to 2?
+
+    It is important to note that '&&' does not short circuit in om.
+
+    x = (1) && (y = 1)      # x = 1  and y = 1 
+    prt y                   # this doesn't error
+
+    The only unary operator is the negation operator '!'.
+
+    x = !(1)            # x is 0
+
+    All conditional operators will accept any type as their operands.
+
+    x = 1, x == "1"     # x is 1 and equal to "1" evaluates to 1 (true)
+    x = 1, x == "2"     # this evaluates to 0 (false)
+    x = 1, x == 1.0     # this evaluates to 1 (true)
+
+    The final operator is the string concatenation operator '|'.  This 
+    operator accepts operands of any type and returns a string.
+
+    a = "aaa", b = "bbb" # set x and y to strings
+    c = a | b            #  z is now "aaabbb"
+
+    This operator is useful in print statements:
+
+    prt "The value of z is: " | z
+
+    This will print "The value of z is: aaabbb" to the console.  This operator
+    was inspired by the shell's pipe operator.  There are no alphabetic 
+    operators in om such as 'and' and 'or' in Python.  There is an 'or'
+    keyword which is equivalent to an "else if" statement.
+
+Flow Control:
+
+    The om language supports basic if then, else if then, else then style flow
+    control.  There is currently no switch (case) statement in om.  In om,
+    as we just mentioned, else_if statements are denoted by the keyword 'or'.
+
+    # check x and print out a string
+    if x == 1
+        print "hi there x is one!"
+    or x == 2
+        print "hi there x is two!"
+    else
+        print "hi there x is not one or two!"
+    fi
+
+    Loops are denoted by the 'for' and 'fin' keywords.  The for statement
+    consists of two sections delimited from each other by a ':' character.
+    The first section is the variable initialization list and the second
+    is the looping conditional.
+
+    # print 0 - 9
+    for i = 0 : i < 10
+        prt i
+        i = i + 1
+    fin
+
+    Remember that om's syntactic appearance is flexible so you could 
+    increment the loop control variable on the same line if you wished.
+
+    # print 0 - 9
+    for i = 0 : i < 10, i = i + 1
+        prt i
+    fin
+
+    There is a break and continue statement as well for controlling the
+    behaviour of the loop.
+
+    # demonstrate the use of break and continue
+    for i = 0 : i < 10 
+        i = i + 1
+        # if i is equal to 1, don't print it
+        if i == 1, con, fi
+
+        # print i 
+        prt i 
+
+        # if i is eqal to 2 break the loop
+        if i == 2, brk, fi
+    fin
+
+    This loop will print the output "2" and then terminate.
+
+Example Programs:
+
+    Example1 uses the Babylonian method to determine the sqrt of a number.  This
+    method will then be used in the next example.
+
+    #!/usr/bin/om
+    # example1.om:
+    # use the Babylonian method to determine the square root
+    # of a given value
+    sqrt:n:
+        #divide by a float to get a float if your numerator
+        #is an integer
+        guess = n / 2.0
+
+        # divide the number by our guess and average the guess
+        # and the result to get a new guess
+        for i = 0 : i < 10
+            result = n / guess
+            guess = (result + guess) / 2
+            i = i + 1
+        fin
+
+        ret guess
+        end
+
+    # start
+    main::
+        prt "the sqrt of 20 is: ~"  | .sqrt(20)
+        end
+
+    Example2 uses the sqrt method from the previous example to set the limit
+    of numbers to check in the sieve of eratosthenes algorithm which we'll
+    use to determine if a given integer is prime.
+
+    #!/usr/bin/om
+    # example2.om:
+    # import sqrt from example1 and use it in the the sieve of eratosthenes
+    # here you have access to everything in Example1.om, case doesn't matter
+    example1 = Example1 # class import not implemented as of version 0.2
+                        # (you have to define the function again)
+    main::
+        # we'll check to see if this is prime
+        n = 11829281
+
+        if n == 1, prt  n | " is not prime", fi
+        if n == 2, prt  n | " is prime", fi
+        if n % 2 == 0, prt  n | " is not prime", fi
+
+        # use the sqrt from example1.om to determine the max
+        max = .example1.sqrt(n)
+
+        # check all the odd numbers up to max
+        found = 1, for i = 3 : i < max
+            if n % i == 0, found = 0, brk, fi
+            i = i + 2
+        fin
+
+        if found == 1,
+            prt n | " is prime", fi
+        else
+            prt n | " is not prime", fi
+        end
+
+Why?:
+
+    I don't like forced indentation or braces ('{', '}') characters
+    for one thing, but mainly because you learn a lot when you implement
+    things like linked lists, hash tables, and syntax trees that 
+    you may have forgotten over the years.  Also, it is a lot of fun.
+
+Author:
+
+    Michael Emch (c) 2007, 2008, 2009, 2010, 2011
+
+    Language concepts and syntax design developed in 2007.
+
+    Re-written in C++ in January of 2011.
+
+License
+
+    http://creativecommons.org/licenses/GPL/2.0/
+

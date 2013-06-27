@@ -1,0 +1,92 @@
+comparison:
+    # test comparison,  make sure x > y
+    x, y, equal_x
+
+:;
+    # if you think the slug is hard to read you could do as above
+    prt "test: " | x  | " vs. " | y;
+
+    n = 0, total_tests = 11;
+
+    if x > y 
+        n = n + 1, fi
+
+    if y < x
+        n = n + 1, fi
+
+    if x == equal_x
+        n = n + 1, fi
+
+    if x != y
+        n = n + 1, fi
+     
+    if x >= y && x >= equal_x
+        n = n + 1, fi
+
+    if y <= x && x <= equal_x
+        n = n + 1, fi
+
+    if x && y
+        n = n + 1, fi
+
+    if x || y
+        n = n + 1, fi
+
+    if !(0)
+        n = n + 1, fi
+
+    if (x = 1)
+        n = n + 1, fi
+
+    if !(0 && 1)
+        n = n + 1, fi
+
+    if (n != total_tests)
+        n = n + 1, fi
+
+   end 
+
+        
+
+
+
+# test operations and types
+main::
+
+    # int int comp
+    prt "testing: int int"
+    .comparison(20,10,20)
+
+    # int float comp
+    prt "testing: int flo"
+    .comparison(20,10.123,20)
+
+    # float int comp
+    prt "testing: flo int"
+    .comparison(20.123, 10, 20.123)
+
+    # float float comp
+    prt "testing: flo flo"
+    .comparison(20.123, 10.123, 20.123)
+
+    # str str comp
+    prt "testing: str str"
+    .comparison("aaa", "bbb", "aaa")
+
+    # str int comp
+    prt "testing: str int"
+    .comparison("20", 10, "20")
+
+    # str flo comp
+    prt "testing: str flo"
+    .comparison("20", 10.123, "20")
+
+    # int str comp
+    prt "testing: int str"
+    .comparison(20, "10", 20)
+
+    # flo str comp
+    prt "testing: flo str"
+    .comparison(20.123, "10", 20.123)
+    end
+

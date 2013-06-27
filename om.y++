@@ -1,0 +1,578 @@
+// om.y++
+%{ 
+    #include "main.h"
+
+%}
+
+%union {
+    char *s;
+    class Node *node;
+    class Method *method;
+}
+
+/* operations */
+%token ADD
+%token SUB
+%token MUL
+%token DIV
+%token MOD
+%token EQ
+%token NE
+%token GT
+%token GE
+%token LT
+%token LE
+%token NOT
+%token SET
+%token CAT
+%token LOR
+%token AND
+
+/* delimiters */
+%token COM
+%token COL
+%token DOT
+%token RP
+%token LP
+
+/* keywords */
+%token PRT
+%token FOR
+%token FIN
+%token BRK
+%token CON
+%token IF
+%token ELSE
+%token FI
+%token RET
+%token END
+
+%token <s> ID
+%token <s> INT
+%token <s> FLO
+%token <s> STR
+
+%type <method> method_definition
+%type <node> statement_list
+%type <node> statement
+%type <node> loop_control
+%type <node> expression_list
+%type <node> expression
+%type <node> method_call
+%type <node> argument_list
+%type <node> argument
+%type <node> constant
+
+%right SET
+%left AND LOR
+%left EQ NE
+%left LT LE GT GE
+%left ADD SUB
+%left MUL DIV MOD
+%left LP RP
+%left NOT
+%left CAT
+
+
+%%
+
+%start module;
+
+module:
+    object_list
+    {
+        // each file is a module and each module is a list
+        // of object
+        P_DEBUG("module: object_list");
+    }
+
+object_list:
+    object_list object
+    {
+        P_DEBUG("object_list: object_list object");
+    }
+    |
+    object
+    {
+        P_DEBUG("object_list: object");
+    }
+    ;
+
+object:
+    method_definition COM statement_list END
+    {
+        P_DEBUG("object: method_definition COM statement_list END");
+        // this sets the methods($1) start node to the node
+        // set in statement_list($3).
+        $1->start = $3;
+    }
+    |
+    COM
+    {
+        // this is just an empty line,
+        // remember that five newlines is equivalent to ,,,,, in om
+        P_DEBUG("object: COM");
+    }
+    ;;
+
+method_definition:
+    ID COL comma_list parameter_list comma_list COL
+    {
+        P_DEBUG("method_definition: ID(%s) COL parameter_list COL", $1);
+        // we can't have multiple definitions of the method in the
+        // the same file currently.
+        if(G_SYMTAB->get($1)) {
+            errorExit("G_SYMTAB has multiple definitions of symbol: %s", $1);
+        }
+        // craeate a new method node and pass the parameter_list which
+        // has already been created.  if parameter list is null, the method
+        // constructor will create a new one and set the length
+        $$ = new Method($1, G_PARAM_LIST);
+        G_PARAM_LIST = NULL;
+        // finally store the method in the global symbol table.  all methods
+        // are global at the moment, phase 3 will add classes
+        G_SYMTAB->put($$);
+	M_DEBUG("added symbol: %s: %p", $1, G_PARAM_LIST);
+    }
+    ;
+
+// this is just purely for convenience
+comma_list:
+    comma_list COM { }
+    | COM { }
+    | /*empty*/ {};
+
+
+parameter_list:
+    parameter_list COM  ID
+    {
+        // here all parameters have been pushed and we just need to
+        // push the last one to the front of the list
+        P_DEBUG("parameter_list: parameter_list COM ID(%s)", $3);
+        G_PARAM_LIST->push_front($3);
+    }
+    |
+    ID
+    {
+        // if we have a null parameter list we create a new one here
+        // otherwise we push the node onto the list
+        P_DEBUG("paramter_list: ID(%s)" , $1);
+        if(G_PARAM_LIST == NULL) {
+            G_PARAM_LIST = new ParamList();
+        }
+            G_PARAM_LIST->push_front($1);
+        }
+    |
+    comma_list
+    {
+        // allows space for comments
+        P_DEBUG("parameter_list: comma_list");
+    }
+    ;
+
+
+statement_list:
+    statement_list statement
+    {
+        // create the node and assign the children.
+        $$ = new Node(node_STMT, $1, $2);
+        // we set id here so we can see what node we're at when using
+        // the debugger.  id is not used on node types other
+        // than expression nodes
+        P_DEBUG("statement_list: statement_list statement");
+    }
+    |
+    statement
+    {
+        // create a new node and assign the left child to null
+        $$ = new Node(node_STMT, NULL, $1);
+        P_DEBUG("statement_list: statement");
+    }
+    ;
+
+statement:
+    PRT expression COM
+    {
+        // prt statement node might be removed in the future.
+        $$ = new Node(node_PRT, NULL, $2);
+        P_DEBUG("statement: PRT expression COM");
+    }
+    |
+    FOR loop_control COM statement_list FIN COM
+    {
+        // loop node left child is the branching conditional and right
+        // child is the statement list
+        $$ = new Node(node_LOOP, $2, $4);
+        P_DEBUG("statement: FOR loop_control COM statement_list FIN COM");
+        
+    }
+    |
+    BRK COM
+    {
+        // brk node sets the ast_break flag
+        $$ = new Node(node_BRK);
+        P_DEBUG("statement: BRK COM");
+    }
+    |
+    CON COM
+    {
+        // con node sets the ast_continue flag
+        $$ = new Node(node_CON);
+        P_DEBUG("statement: CON COM");
+    }
+    |
+    RET expression COM
+    {
+        // ret node sets the ast_return flag and the return_value
+        $$ = new Node(node_RET, NULL, $2 );
+        P_DEBUG("statement: RET expression COM");
+    }
+    |
+    RET COM
+    {
+        // empty return statement
+        $$ = new Node(node_RET, NULL, NULL);
+        P_DEBUG("statement: RET COM");
+    }
+    |
+    IF expression COM statement_list FI COM
+    {
+        // flow control node left child is the conditional and right child
+        // is the conditional statements
+        // this would then change to
+        // $$ = new Node(node_FC, $2,
+        //      new Node(node_FC, $4, NULL)
+        //      );
+        $$ = new Node(node_FC, $2, $4);
+        P_DEBUG("statement: IF expression COM statement_list FI COM");
+    }
+    |
+    IF expression COM statement_list ELSE statement_list FI COM
+    {
+        // not sure how to do this
+        // $$ = new Node(node_FC, $2,
+        //      new Node(node_BRCH, $4, $6)
+        //      );
+        // that should work
+        // then or statements would look like this:
+        // if, x, prt x, or y, prt y, or z, prt z, else, prt a, fi
+        // FC(x, BRCH(prt x, FC(y, BRCH(prt y, FC(z, BRCH(prt z, prt a))))))
+        P_DEBUG("statement: IF expression COM statement_list ELSE statement_list FI COM");
+
+    }
+    |
+   expression_list COM
+    {
+        // this is a set (list) of expressions, no new node is created
+        P_DEBUG("statement: expression_list COM");
+        $$ = $1;
+    }
+
+
+    ;
+
+loop_control:
+    expression_list COL expression
+    {
+        // expression list can be empty but expression cannot
+        $$ = new Node(node_EXPR, $1, $3);
+        P_DEBUG("loop_control: expression_list COL expression");
+    }
+    |
+    expression_list COL
+    {
+        // if expression isn't there we loop forever
+        $$ = new Node(node_EXPR, $1, NULL);
+        P_DEBUG("loop_control: expression_list COL");
+    }
+    ;
+
+
+expression_list:
+    expression_list COM expression
+    {
+        $$ = new Node(node_EXPR, $1, $3);
+        P_DEBUG("expression_list: expression_list COM expression");
+        P_DEBUG("%s", $$->id);
+    }
+    |
+    expression
+    {
+        // just pass up the expression
+        P_DEBUG("expression_list: expression");
+        $$ = $1;
+    }
+    |
+    /* empty */
+    {
+        // set this to null, it is empty
+        P_DEBUG("expression_list: *empty*");
+        $$ = NULL;
+    }
+    ;
+
+expression:
+    LP expression RP
+    {
+        P_DEBUG("expression: LP expression RP");
+        $$ = $2;
+    }
+    |
+    expression ADD expression
+    {
+        // binary operations follow this format...
+        // create a new node_EXPR, set the op_ type and assign
+        // the left and right children
+        P_DEBUG("expression: expression ADD expression");
+        $$ = new Node(node_EXPR, op_ADD, $1, $3);
+    }
+    |
+    expression SUB expression
+    {
+        P_DEBUG("expression: expression SUB expression");
+        $$ = new Node(node_EXPR, op_SUB, $1, $3);
+    }
+    |
+    expression MUL expression
+    {
+        P_DEBUG("expression: expression MUL expression");
+        $$ = new Node(node_EXPR, op_MUL, $1, $3);
+    }
+    |
+    expression DIV expression
+    {
+        P_DEBUG("expression: expression DIV expression");
+        $$ = new Node(node_EXPR, op_DIV, $1, $3);
+    }
+    |
+    expression MOD expression
+    {
+        P_DEBUG("expression: expression MOD expression");
+        $$ = new Node(node_EXPR, op_MOD, $1, $3);
+    }
+    |
+    expression AND expression
+    {
+	P_DEBUG("expression: expression AND expression");
+	$$ = new Node(node_EXPR, op_AND, $1, $3);
+    }
+    |
+    expression LOR expression
+    {
+	P_DEBUG("expression: expression LOR expression");
+	$$ = new Node(node_EXPR, op_LOR, $1, $3);
+    }
+    |
+    expression EQ expression
+    {
+        P_DEBUG("expression: expression EQ expression");
+        $$ = new Node(node_EXPR, op_EQ, $1, $3);
+    }
+    |
+    expression NE expression
+    {
+        P_DEBUG("expression: expression NE expression");
+        $$ = new Node(node_EXPR, op_NE, $1, $3);
+    }
+    |
+    expression GT expression
+    {
+        P_DEBUG("expression: expression GT expression");
+        $$ = new Node(node_EXPR, op_GT, $1, $3);
+    }
+    |
+    expression GE expression
+    {
+        P_DEBUG("expression: expression GE expression");
+        $$ = new Node(node_EXPR, op_GE, $1, $3);
+    }
+    |
+    expression LT expression
+    {
+        P_DEBUG("expression: expression LT expression");
+        $$ = new Node(node_EXPR, op_LT, $1, $3);
+    }
+    |
+    expression LE expression
+    {
+        P_DEBUG("expression: expression LE expression");
+        $$ = new Node(node_EXPR, op_LE, $1, $3);
+    }
+    |
+    expression CAT expression
+    {
+	P_DEBUG("expression: expression DOT expression");
+	$$ = new Node(node_EXPR, op_CAT, $1, $3);
+    }
+    |
+    NOT expression
+    {
+	P_DEBUG("expression: NOT expression");
+	$$ = new Node(node_EXPR, op_NOT, NULL, $2);
+    }
+    |
+    ID SET expression
+    {
+        // this is an assignment so there is no left child.  we
+        // do have to set the id for symbol lookup
+        P_DEBUG("expression: ID(%s) SET expression", $1);
+        $$ = new Node(node_EXPR, op_SET, NULL, $3);
+        $$->id = $1;
+    }
+    |
+    method_call
+    {
+        // pass up the node from method call
+        P_DEBUG("expression: method_call");
+        $$ = $1;
+    }
+    |
+    constant
+    {
+        // pass up the constant identifier
+        P_DEBUG("expression: constant");
+        $$ = $1;
+    }
+    |
+    ID
+    {
+        // here we need to obtain a variable from the symbol table
+        // remember we're just building the parser tree now, we'll see
+        // if it exists at runtime.
+        P_DEBUG("expression: ID(%s)", $1);
+        $$ = new Node(node_EXPR, op_GET);
+        // don't forget to set the id
+        $$->id = $1;
+    }
+  
+    ;
+
+method_call:
+    DOT ID LP RP
+    {
+        // this is defined for an empty argument_list here because if
+        // you set empty in argument_list bison gives an error.
+        // always remember to explicitly set the id after creating the
+        // node
+        P_DEBUG("method_call: DOT ID(%s) LP RP", $2);
+        $$ = new Node(node_EXPR, op_CALL, NULL, NULL);
+        $$->id = $2;
+    }
+    |
+    DOT ID LP argument_list RP
+    {
+        P_DEBUG("method_call: DOT ID(%s) LP RP", $2);
+        $$ = new Node(node_EXPR, op_CALL, NULL, $4);
+        $$->id = $2;
+    }
+    ;
+
+argument_list:
+    argument_list COM argument
+    {
+        // arguments will have the op_ARG set in the argument:
+        // rule below.  at run time you can easily build a stack
+        // and compare that against the G_PARAM_LIST for the particular
+        // method (which will also be in reverse order).
+        P_DEBUG("argument_list: argument_list COM argument");
+        $$ = new Node(node_EXPR, $1, $3);
+    }
+    |
+    argument
+    {
+        // pass up the argument node
+        P_DEBUG("argument_list: argument");
+        $$ = $1;
+    }
+    ;
+  
+
+argument:
+    expression
+    {
+        // here we set op_ARG and set the right child to
+        // the expression node
+        P_DEBUG("argument_list: expression");
+        $$ = new Node(node_ARG, NULL, $1);
+    }
+    ;
+
+
+constant:
+    INT
+    {
+        // create a new node of op_CONST type and set the
+        // node's storage area to the value of $1
+        P_DEBUG("constant: INT(%s)", $1);
+        $$ = new Node(node_EXPR, op_CONST);
+        // we were storing this in the symbol table, but...
+        // $$->id =  new G_SYMTAB->getConstantId(;
+	    $$->id = $1;
+        // don't want to look this up every time. at this point we
+        // really don't even need it in the symbol table at all.
+        // instead of adding it let's store it in the node itself.
+        // Int *value = new Int(atoi($1), $$->id);
+        // G_SYMTAB->put($$->id,value);
+        $$->value.v_int = atoi($1);
+	$$->value_type = type_INT;
+
+
+        // this could change once we add multiple types...
+    }
+    |
+    SUB INT
+    {
+	// negative integer
+	P_DEBUG("constant: SUB INT(%s)", $2);
+	$$ = new Node(node_EXPR, op_CONST);
+	char *str = strMalloc("-", sizeof($2)+1);
+	$$->id = strncat(str, $2, sizeof(str));
+	$$->value.v_int = (-1) * atoi($2);
+	$$->value_type = type_INT;
+    }
+    |
+    FLO
+    {
+        P_DEBUG("constant: FLO(%s)", $1);
+        $$ = new Node(node_EXPR, op_CONST);
+        $$->id = $1;
+        $$->value.v_flo = atof($1);
+	$$->value_type = type_FLO;
+    }
+    |
+    SUB FLO
+    {
+	P_DEBUG("constant: SUB FLO(%s)", $2);
+ 	$$ = new Node(node_EXPR, op_CONST);
+	char *str = strMalloc("-", sizeof($2)+1);
+	$$->id = strncat(str,$2, sizeof(str));
+	$$->value.v_flo = (-1) * atof($2);
+	$$->value_type = type_FLO;
+    }
+    |
+    STR
+    {
+	P_DEBUG("constant: STR(%s)", $1);
+	$$ = new Node(node_EXPR, op_CONST);
+	char *substr = strMallocSubStr($1, strlen($1), 1, strlen($1)-1);
+	free($1);
+	$$->id = substr;
+	$$->value.v_str = substr;
+	$$->value_type = type_STR;
+    }
+    ;
+
+
+%% 
+
+// here is the parser error function.  at some point make this more
+// descriptive of syntax errors.  bison has features build into it which
+// allow you to get the column position as well
+void yyerror(const char *format, ...) {
+    printf("syntax error: line %d\n", linenum);
+}
+
+// main
+#include "main.cpp"
+
+

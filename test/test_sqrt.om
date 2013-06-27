@@ -1,0 +1,25 @@
+# babylonian method
+sqrt:n:
+    guess = n / 2.0
+
+    for i = 0 : i < 10
+        result = n / guess
+        guess = (result + guess) / 2
+        i = i + 1
+    fin 
+
+    ret guess
+
+    end
+
+
+main::
+    prt "the sqrt of 20 is: ~"  | .sqrt(20)
+    end
+    
+
+
+
+
+
+

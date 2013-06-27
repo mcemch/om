@@ -1,0 +1,46 @@
+# test speed of variable assignment
+assignment: 
+    x  # receiving type
+    y  # assignment value
+    z  # number of assignements
+:;  
+
+    prt "testing: " | x | " = " | y | ": " | z | " times"
+    for i = 0 : i < z,  i = i + 1
+        x = y
+    fin
+    end
+
+
+main::
+    # for testing performance use 
+    # y = 20000000
+
+    # test int int
+    .assignment(20, 20, 100)
+
+    # test int flo
+    .assignment(20, 20.123, 100)
+
+    # test int str
+    .assignment(20, "20", 100)
+
+    # test flo int
+    .assignment(20.123, 20, 100)
+
+    # test flo flo
+    .assignment(20.123, 20.123, 100)
+
+    # test flo str
+    .assignment(20.123, "aaa", 100);
+
+    # test str int
+    .assignment("aaa", 20, 100)
+
+    # test str flo
+    .assignment("aaa", 20.123, 100)
+
+    # test str str
+    .assignment("aaa", "bbb", 100)
+
+    end
